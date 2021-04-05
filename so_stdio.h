@@ -32,6 +32,9 @@
 
 struct _so_file {
 	int fd;
+	char* buffer;
+	ssize_t offset;
+	ssize_t buf_size;
 };
 
 typedef struct _so_file SO_FILE;
