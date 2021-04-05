@@ -8,8 +8,7 @@ COMPILE_LOG=compile.log
 
 build: so_stdio.o
 	$(CC) $(LINK_OPTIONS) $^ 2>> $(COMPILE_LOG)
-	rm *.o
-
+	
 so_stdio.o:
 	$(CC) $(OBJECT_OPTIONS) -c $(SOURCE) 2> $(COMPILE_LOG)
 
