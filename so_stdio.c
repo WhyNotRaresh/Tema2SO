@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#define DEFAULT_BUF_SIEZ 4096
+
 SO_FILE *so_fopen(const char *pathname, const char *mode) {
 	SO_FILE *file = (SO_FILE *) malloc (sizeof(SO_FILE));
 	if (file == NULL) return NULL;
@@ -22,16 +24,17 @@ SO_FILE *so_fopen(const char *pathname, const char *mode) {
 	if (file-> fd < 0) { free(file); return NULL; }
 	if (strstr(mode, "a") != NULL) lseek(file->fd, 0, SEEK_END);
 
-	file->buffer = calloc(4096, sizeof(char));
+	file->buffer = calloc(DEFAULT_BUF_SIEZ, sizeof(char));
 	if (file->buffer == NULL) { free(file); return NULL; }
 	file->offset = 0;
-	file->buf_size = 4096;
+	file->buf_size = DEFAULT_BUF_SIEZ;
 
 	return file;
 }
 
 int so_fclose(SO_FILE *stream) {
 	int ret = 0;
+	so_fflush(stream);
 	ret = close(stream->fd);
 	free(stream->buffer);
 	free(stream);
@@ -43,13 +46,20 @@ size_t buf_read(SO_FILE *stream) {
 	return read(stream->fd, stream->buffer, stream->buf_size);
 }
 
+void buf_write(SO_FILE *stream) {
+	so_fflush(stream);
+	stream->offset = 0;
+	memset(stream->buffer, 0, stream->buf_size);
+}
+
 int so_fileno(SO_FILE *stream) {
 	return (stream == NULL) ? -1 : stream->fd;
 }
 
 
 int so_fflush(SO_FILE *stream) {
-	return 0;
+	return (write(stream->fd, stream->buffer, stream->offset) <= 0) ?
+		SO_EOF : 0;
 }
 
 int so_fseek(SO_FILE *stream, long offset, int whence) {
@@ -75,7 +85,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 			stream->buf_size - stream->offset;
 
 		// Writing at pointer
-		memcpy(ptr + ret, stream->buffer + stream->offset, bytes_no);
+		memcpy(ptr + ret * size, stream->buffer + stream->offset, bytes_no);
 		ret += bytes_no / size;
 
 		// Updating offset
@@ -103,7 +113,14 @@ int so_fgetc(SO_FILE *stream) {
 }
 
 int so_fputc(int c, SO_FILE *stream) {
-	return 0;
+	if (stream->offset == DEFAULT_BUF_SIEZ - 1) {
+		buf_write(stream);
+	}
+
+	stream->buffer[stream->offset] = c;
+	stream->offset = (stream->offset + 1) % stream->buf_size;
+
+	return (int) c;
 }
 
 int so_feof(SO_FILE *stream) {
