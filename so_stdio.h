@@ -30,7 +30,9 @@
 
 #define SO_EOF (-1)
 
-struct _so_file;
+struct _so_file {
+	int fd;
+};
 
 typedef struct _so_file SO_FILE;
 
