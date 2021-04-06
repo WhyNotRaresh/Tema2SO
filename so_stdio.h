@@ -31,7 +31,9 @@
 #define SO_EOF (-1)
 
 /* Flag definitions for file struct */
-#define WRITTEN 1			// Set if there is written data in buffer that hasn't been flushed
+#define WRITTEN		1		// Set if there is written data in buffer that hasn't been flushed
+#define REACH_EOF	2		// Set if cursor has reached end of file
+#define LAST_BUF	4		// Set if EOF is in this buffer
 
 struct _so_file {
 	int fd;					// File Descriptor
