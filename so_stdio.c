@@ -21,12 +21,15 @@ SO_FILE *so_fopen(const char *pathname, const char *mode) {
 	else { free(file); return NULL; }
 
 	file->fd = open(pathname, flags, 0644);
-	if (file-> fd < 0) { free(file); return NULL; }
+	if (file->fd < 0) { free(file); return NULL; }
+	file->curr = lseek(file->fd, 0, SEEK_CUR);
 
 	file->buffer = calloc(DEFAULT_BUF_SIEZ, sizeof(char));
 	if (file->buffer == NULL) { free(file); return NULL; }
 	file->offset = 0;
 	file->buf_size = DEFAULT_BUF_SIEZ;
+
+	file->flags = 0;
 
 	return file;
 }
@@ -54,6 +57,7 @@ int buf_write(SO_FILE *stream) {
 }
 
 int so_fflush(SO_FILE *stream) {
+	stream->flags &= ~WRITTEN;
 	return (write(stream->fd, stream->buffer, stream->offset) <= 0) ?
 		SO_EOF : 0;
 }
@@ -63,11 +67,19 @@ int so_fileno(SO_FILE* stream) {
 }
 
 int so_fseek(SO_FILE *stream, long offset, int whence) {
+	if (stream->flags & WRITTEN != 0) {
+		if (so_fflush(stream) == SO_EOF) return SO_EOF;
+	}
+	memset(stream->buffer, 0, stream->buf_size);
+	stream->offset = 0;
+
+	lseek(stream->fd, offset, whence);
+	stream->curr = lseek(stream->fd, 0, SEEK_CUR);
 	return 0;
 }
 
 long so_ftell(SO_FILE *stream) {
-	return 0;
+	return stream->curr;
 }
 
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
@@ -92,6 +104,8 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 		stream->offset = (stream->offset + bytes_no) % stream->buf_size;
 	} while (ret < nmemb);
 
+	stream->curr += ret;
+
 	return ret;
 }
 
@@ -115,7 +129,10 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 
 		// Updating offset
 		stream->offset += bytes_no;
+		stream->flags |= WRITTEN;
 	} while (ret < nmemb);
+
+	stream->curr += ret;
 
 	return ret;
 }
@@ -128,6 +145,7 @@ int so_fgetc(SO_FILE *stream) {
 
 	unsigned char c = stream->buffer[stream->offset];
 	stream->offset = (stream->offset + 1) % stream->buf_size;
+	stream->curr++;
 
 	return (int) c;
 }
@@ -140,6 +158,8 @@ int so_fputc(int c, SO_FILE *stream) {
 
 	stream->buffer[stream->offset] = c;
 	stream->offset++;
+	stream->curr++;
+	stream->flags |= WRITTEN;
 
 	return (int) c;
 }

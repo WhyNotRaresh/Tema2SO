@@ -30,11 +30,18 @@
 
 #define SO_EOF (-1)
 
+/* Flag definitions for file struct */
+#define WRITTEN 1			// Set if there is written data in buffer that hasn't been flushed
+
 struct _so_file {
-	int fd;
-	char* buffer;
-	ssize_t offset;
-	ssize_t buf_size;
+	int fd;					// File Descriptor
+	ssize_t curr;			// Currsor position in file
+
+	char* buffer;			// Buffer for buffered IO
+	ssize_t offset;			// First unwritten position in buffer
+	ssize_t buf_size;		// Max size of buffer
+
+	int flags;
 };
 
 typedef struct _so_file SO_FILE;
