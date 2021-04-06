@@ -48,9 +48,8 @@ int buf_read(SO_FILE *stream) {
 
 	int ret = read(stream->fd, stream->buffer, DEFAULT_BUF_SIZE);
 	if (ret < DEFAULT_BUF_SIZE) {
-		stream->buffer = realloc(stream->buffer, ret + 1);
-		stream->buf_size = ret + 1;
-		stream->buffer[ret] = (char)SO_EOF;
+		stream->buffer = realloc(stream->buffer, ret);
+		stream->buf_size = ret;
 		stream->flags |= LAST_BUF;
 	}
 
@@ -100,10 +99,7 @@ long so_ftell(SO_FILE *stream) {
 }
 
 size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
-	if ((stream->flags & REACH_EOF) != 0) {
-		printf("adadad\n");
-		//return 0;
-	}
+	if ((stream->flags & REACH_EOF) != 0) return 0;
 
 	size_t ret = 0;
 
@@ -121,7 +117,6 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 		// Last possible read sequance
 		if ((stream->flags & LAST_BUF) != 0 && bytes_no == stream->buf_size - stream->offset) {
 			stream->flags |= REACH_EOF;
-			bytes_no--;
 		}
 
 		// Writing at pointer
@@ -133,8 +128,12 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 	} while (ret < nmemb && (stream->flags & REACH_EOF) == 0);
 
 	// Dummy read
-	for (int i = ret / DEFAULT_BUF_SIZE; i < nmemb / DEFAULT_BUF_SIZE; i++)
-		read(stream->fd, stream->buffer, 0);
+	for (int i = ret / DEFAULT_BUF_SIZE; i < nmemb / DEFAULT_BUF_SIZE; i++) {
+		char* dummy = malloc(1);
+		read(stream->fd, dummy, 1);
+		lseek(stream->fd, -1, SEEK_CUR);
+		free(dummy);
+	}
 
 	stream->curr += ret;
 
@@ -173,6 +172,11 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 
 int so_fgetc(SO_FILE *stream) {
 	if ((stream->flags & REACH_EOF) != 0) return SO_EOF;
+	if (stream->offset == stream->buf_size && (stream->flags & LAST_BUF) != 0) {
+		stream->flags |= REACH_EOF;
+		return SO_EOF;
+	}
+
 	stream->offset %= stream->buf_size;
 
 	// Reading into Buffer
@@ -184,10 +188,6 @@ int so_fgetc(SO_FILE *stream) {
 	stream->offset++;
 	stream->curr++;
 
-	if (c == (unsigned char)SO_EOF) {
-		stream->flags |= REACH_EOF;
-		return SO_EOF;
-	}
 	return (int) c;
 }
 
