@@ -6,6 +6,8 @@ Grupa: 333CB
 Organizare
 -
 
+## Structura de date folosita
+
 Pentru gestionarea fisierelor folosesc structura de data ```_so_file``` ce contie campurile :
 ``` c
 struct _so_file {
@@ -27,6 +29,19 @@ Pentru campu de flags am definit 5 flaguri care sunt setate in diferite conditii
 1.	```WRITE_ERR``` setat daca exista vreo eroare la scrierea in fisier (daca functia ```write()``` intoarce -1);
 1.	```READ_ERR``` setat daca exista vreai eroare la citirea din fisier (daca functia ```read()``` intoarce -1).
 
+## Amanunte mici legate de implementare
+
+Functia ```so_fflush()``` scrie in fisier doar daca flagul de WRITTEN este setat in stream.
+
+La momentul inchiderii fisierului cu  ```so_fclose()``` sau la schimbarea pozitiei cursorului cu ```so_fseek()```,
+pentru a nu se pirder caractere scrise in buffer si nu in fisier, se apleaza ```so_fflush()```.
+
+Pozitia cursorului din functiile ```so_fwrite()``` si ```so_fread()``` este mutata dupa ce toate elementele au fost scrise/citite,
+nu dupa fiecare apel al lui write/read.
+
+Pentru a nu depasii End Of File, functiile ```so_fread()``` si ```so_fgetc()``` se uita la flagul de REACH_EOF inainte sa faca vreo actiune.
+
+Functia ```so_ferror()``` returneaza SO_EOF doar daca unul din flagurile WRITE_ERR sau READ_ERR este setat.
 
 Implementare
 -
