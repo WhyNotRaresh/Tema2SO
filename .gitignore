@@ -1,3 +1,4 @@
 checker-lin/
 *.log
 .vs/
+*.zip
