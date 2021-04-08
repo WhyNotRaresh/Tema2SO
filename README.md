@@ -28,6 +28,8 @@ Pentru campu de flags am definit 5 flaguri care sunt setate in diferite conditii
 1.	```READ_ERR``` setat daca exista vreai eroare la citirea din fisier (daca functia ```read()``` intoarce -1).
 
 
+
+
 Implementare
 -
 

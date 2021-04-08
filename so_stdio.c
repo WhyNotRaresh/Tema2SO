@@ -5,8 +5,6 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#define DEFAULT_BUF_SIZE 4096
-
 SO_FILE *so_fopen(const char *pathname, const char *mode) {
 	SO_FILE *file = (SO_FILE *) malloc (sizeof(SO_FILE));
 	if (file == NULL) return NULL;

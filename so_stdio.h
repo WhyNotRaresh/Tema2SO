@@ -37,6 +37,8 @@
 #define WRITE_ERR	8		// Set if something went wrong while writing to file
 #define READ_ERR	16		// Set if something went wrong while reading from file
 
+#define DEFAULT_BUF_SIZE 4096
+
 struct _so_file {
 	int fd;					// File Descriptor
 	ssize_t curr;			// Currsor position in file
