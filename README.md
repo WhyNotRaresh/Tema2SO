@@ -28,14 +28,13 @@ Pentru campu de flags am definit 5 flaguri care sunt setate in diferite conditii
 1.	```READ_ERR``` setat daca exista vreai eroare la citirea din fisier (daca functia ```read()``` intoarce -1).
 
 
-
-
 Implementare
 -
 
 * Tema este realizata partial. Pe masina locala si pe vm checker am 78 de puncte. Nu este implementata partea de procese.
 * Nu este implementata functionalitatea de Windows a temei.
 * Tema am facut-o pe Windows integral, folosind WSL pentru a rula checkerul si Makefileul.
+* Makefile-ul contine reguli de build, clean, si zip (pentru crearea arhivei);
 
 
 Resurse Utile
