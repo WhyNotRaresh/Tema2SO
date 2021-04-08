@@ -34,6 +34,8 @@
 #define WRITTEN		1		// Set if there is written data in buffer that hasn't been flushed
 #define REACH_EOF	2		// Set if cursor has reached end of file
 #define LAST_BUF	4		// Set if EOF is in this buffer
+#define WRITE_ERR	8		// Set if something went wrong while writing to file
+#define READ_ERR	16		// Set if something went wrong while reading from file
 
 struct _so_file {
 	int fd;					// File Descriptor

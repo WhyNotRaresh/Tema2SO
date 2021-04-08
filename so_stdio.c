@@ -43,13 +43,16 @@ int so_fclose(SO_FILE *stream) {
 }
 
 int buf_read(SO_FILE *stream) {
-	free(stream->buffer);
-	stream->buffer = malloc(DEFAULT_BUF_SIZE * sizeof(char));
+	memset(stream->buffer, 0, DEFAULT_BUF_SIZE);
 
 	int ret = read(stream->fd, stream->buffer, DEFAULT_BUF_SIZE);
+	if (ret == -1) {
+		stream->flags |= READ_ERR;
+		return SO_EOF;
+	}
+
+	stream->buf_size = ret;
 	if (ret < DEFAULT_BUF_SIZE) {
-		stream->buffer = realloc(stream->buffer, ret);
-		stream->buf_size = ret;
 		stream->flags |= LAST_BUF;
 	}
 
@@ -58,7 +61,7 @@ int buf_read(SO_FILE *stream) {
 
 int buf_write(SO_FILE *stream) {
 	// Fulushing contents
-	if (so_fflush(stream) == SO_EOF) return SO_EOF;
+	so_fflush(stream) == SO_EOF;
 
 	int ret = stream->offset;
 	stream->offset = 0;
@@ -70,8 +73,18 @@ int buf_write(SO_FILE *stream) {
 int so_fflush(SO_FILE *stream) {
 	if ((stream->flags & WRITTEN) != 0) {
 		stream->flags &= ~WRITTEN;
-		return (write(stream->fd, stream->buffer, stream->offset) <= 0) ?
-			SO_EOF : 0;
+
+		// Writing stream-offset bytes into file
+		size_t ret = 0;
+		while (ret != stream->offset) {
+			size_t bytes = write(stream->fd, stream->buffer + ret, stream->offset - ret);
+			ret += bytes;
+
+			if (bytes == -1) {
+				stream->flags |= WRITE_ERR;
+				return SO_EOF;
+			}
+		}
 	}
 	return 0;
 }
@@ -106,7 +119,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 	do {
 		// Reading into Buffer
 		if (stream->offset == 0) {
-			if (buf_read(stream) == SO_EOF) return SO_EOF;
+			if (buf_read(stream) == SO_EOF) break;
 		}
 
 		// Number of bytes to copy
@@ -125,15 +138,7 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 
 		// Updating offset
 		stream->offset = (stream->offset + bytes_no) % stream->buf_size;
-	} while (ret < nmemb && (stream->flags & REACH_EOF) == 0);
-
-	// Dummy read
-	for (int i = ret / DEFAULT_BUF_SIZE; i < nmemb / DEFAULT_BUF_SIZE; i++) {
-		char* dummy = malloc(1);
-		read(stream->fd, dummy, 1);
-		lseek(stream->fd, -1, SEEK_CUR);
-		free(dummy);
-	}
+	} while (ret < nmemb);
 
 	stream->curr += ret;
 
@@ -146,7 +151,7 @@ size_t so_fwrite(const void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 	do {
 		// Flushing buffer
 		if (stream->offset == DEFAULT_BUF_SIZE) {
-			if (buf_write(stream) == SO_EOF) return SO_EOF;
+			if (buf_write(stream) == SO_EOF) break;
 		}
 
 		// Number of bytes to write
@@ -181,7 +186,7 @@ int so_fgetc(SO_FILE *stream) {
 
 	// Reading into Buffer
 	if (stream->offset == 0) {
-		if (buf_read(stream) <= 0) return SO_EOF;
+		if (buf_read(stream) == SO_EOF) return SO_EOF;
 	}
 
 	unsigned char c = stream->buffer[stream->offset];
@@ -210,7 +215,8 @@ int so_feof(SO_FILE *stream) {
 }
 
 int so_ferror(SO_FILE *stream) {
-	return 0;
+	return ((stream->flags & (WRITE_ERR | READ_ERR)) != 0) ?
+		SO_EOF : 0;
 }
 
 SO_FILE *so_popen(const char *command, const char *type) {
