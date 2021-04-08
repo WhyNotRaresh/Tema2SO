@@ -46,13 +46,14 @@ int buf_read(SO_FILE *stream) {
 	memset(stream->buffer, 0, DEFAULT_BUF_SIZE);
 
 	int ret = read(stream->fd, stream->buffer, DEFAULT_BUF_SIZE);
+
 	if (ret == -1) {
 		stream->flags |= READ_ERR;
 		return SO_EOF;
 	}
 
-	stream->buf_size = ret;
 	if (ret < DEFAULT_BUF_SIZE) {
+		stream->buf_size = ret;
 		stream->flags |= LAST_BUF;
 	}
 
@@ -127,14 +128,14 @@ size_t so_fread(void *ptr, size_t size, size_t nmemb, SO_FILE *stream) {
 			(nmemb - ret) * size :
 			stream->buf_size - stream->offset;
 
+		// Writing at pointer
+		memcpy(ptr + ret * size, stream->buffer + stream->offset, bytes_no);
+		ret += bytes_no / size;
+
 		// Last possible read sequance
 		if ((stream->flags & LAST_BUF) != 0 && bytes_no == stream->buf_size - stream->offset) {
 			stream->flags |= REACH_EOF;
 		}
-
-		// Writing at pointer
-		memcpy(ptr + ret * size, stream->buffer + stream->offset, bytes_no);
-		ret += bytes_no / size;
 
 		// Updating offset
 		stream->offset = (stream->offset + bytes_no) % stream->buf_size;
