@@ -6,7 +6,7 @@ Grupa: 333CB
 Organizare
 -
 
-## Structura de date folosita
+### Structura de date folosita
 
 Pentru gestionarea fisierelor folosesc structura de data ```_so_file``` ce contie campurile :
 ``` c
@@ -29,7 +29,7 @@ Pentru campu de flags am definit 5 flaguri care sunt setate in diferite conditii
 1.	```WRITE_ERR``` setat daca exista vreo eroare la scrierea in fisier (daca functia ```write()``` intoarce -1);
 1.	```READ_ERR``` setat daca exista vreai eroare la citirea din fisier (daca functia ```read()``` intoarce -1).
 
-## Amanunte mici legate de implementare
+### Amanunte mici legate de implementare
 
 Functia ```so_fflush()``` scrie in fisier doar daca flagul de WRITTEN este setat in stream.
 
